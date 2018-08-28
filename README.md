@@ -1,3 +1,13 @@
+#----------------
+#SUMMARY
+#--------------
+1) Start working on your project
+2) Create a docker file (paragraph 007) hint(ctrl+f, insert 007)
+3) To build the image ```docker build -t stasberezin/(appName) . ``` 
+4) Enter the file system add ```sh``` at the of step 3 or if its already running ```docker exec -it (container_ID) sh``` 
+5) Better way to use (paragraph 008)
+
+
 #----------------------
 # BASICS of Docker
 #--------------------
@@ -76,3 +86,148 @@ and
 #------------------
 
 
+#Dockerfile
+Place where all configurations will sit -> then sends to docker CLI (terminal), -> Docker server which does the job itself -> then an image is created.
+Process: 
+1)Base image
+2)Run commands to install additional software
+3)Command to run on the container startup
+
+When you are inside of a folder containing the Docker file need to run ```docker build . ``` that will start the process. Upon completion of this build you will be given an ID, which in order to run need ```docker run ID```
+
+But a better way would be
+
+``` docker build -t (id_name)/(project_Name):(version latest) .```
+
+and then ```docker run (id_name)/(project_Name)```
+
+
+Instructions in dockerfile
+
+FROM: what base we want to use
+RUN: exectute commands while setting up the container
+CMD: When our image is used to run as a continaer run CMD command.
+
+#Base image
+Its like a hardware that has no OS on it, so the image gives instructions on what to install and configurations on empty machine before running and apps.
+
+So FROM Ubuntu provides functionalities of Ubuntu, so all cmd commands like apt-instal etc would be valid.
+
+#Docker build command
+
+When we are running that command it looks at the FROM (Ubntu, alpine) etc, it searches for the image on docker hub, gets the snapshot of folder structure and system and inserts it into your container below the kernel. Hence giving you an ability to run commands for the chosen OS. During every command we get a new image. If something is already installed its getting it from cache
+
+#Generate an image from running container
+For example we can have a running container, add more packages etc, and then make an image based upon it.
+
+```docker exec -it (container_ID) sh``` 
+
+or
+
+```docker run -it (app-name) sh``` will do the same but at the start up
+
+and then
+
+```docker commit -c 'CMD ["anycommands"]' (id_of_current_container)``` that will give you an ID of a new image
+
+"alpine" is the most compacted image
+
+#---------------------
+#Working with NodeJS
+#----------------------
+
+
+
+#Start project located in NodeJs folder (BASIC)
+
+When working with nodeJs we need to install all dependencies first, machine will assume that npm is already installed. 
+
+By default dockerfile will be in container file system, not precisely in your folder where u have your packages.json and etc, 
+
+```COPY ./ ./``` 1st "./" meaning our current directory, 2nd is for our container.
+
+007
+
+Our Dockerfile could look like this 
+```
+#what is used as OS, in this case node
+FROM node:alpine
+
+#if doesnt exist create this directory and put execute the rest of the commands in there
+WORKDIR /usr/app
+
+#what exactly to copy, by 1st "./" we are saying to copy everything. If need can specify explicitly what to copy like "./package.json", so only that will be copied and the rest of commands will be executed
+COPY ./package.json ./
+
+#this will be executed only if changes were made in json file
+RUN npm install
+
+#then copy the rest of the files.
+COPY ./ ./
+
+#commands to run upon completion of above steps
+CMD ["npm", "start"]
+```
+Then after we can do ```docker build -t (ourDockerName)/(projectName) .``` which taggs our newly created image
+
+The image will be running, but we cant access it the app itself, because of the absence of port redirection between our machine and container. The solution would require to redirect users to container if a request was made to that specific url.
+#To make the server run
+Solution ```docker run -p 8080:8080 (ourDockerName)/(projectName)```
+
+first 8080 is the request you make from your machine, and second 8080 is the port that is in the docker container.
+
+Now the app should be working.
+
+
+
+#More advanced Nodejs App (NodeJs2)
+The idea is to create an app which will count visits to the website. It will be 1 seperate Docker container to count visitors (redis), and multiple containers for the app itself. A wrong way to do it, would be to have redis on each container, so its better to have an integrated counter which is hooked up to all containers. 
+
+docker compose is used to start multiple containers at the same time.(it can help save time instead of writing all commands everytime) 
+
+008
+#Docker compose run 
+docker.compose.yml -> you can basically say to go and make 2 different containers and all instructions associated with them
+
+```
+version: '3'
+
+
+#by making in this file structure will automatically
+#connect those 2 services on the same network
+services:
+#create redis server
+  redis-server:
+  #use image of redis
+    image: 'redis'
+
+  node-app:
+    #use the docker file in the current directory
+    #it does the docker buld and docker run at the same time
+    build: .
+    #get ports in the way like "docker run -p 8080:8080"
+    ports:
+      - "4001:8081"
+
+```
+
+#Compose 
+```docker-compose up --build``` start
+```docker-compose down``` stops the containers
+```docker-compose ps``` to show composed containers in the specific folder
+
+#Automatic container restart
+In case some of the containers failed to start, or just crashed during some period we can do the following.
+
+Restart policies
+(1)'"no"'- dont attempt to restart
+(2)'always'- always try to restart
+(3)'on-failure'-only restart if error happend
+(4)'unless-stopped'-always restart unles devs stop it
+
+in docker-compose file, under the container props we just write ```restart: (restart_policy)```
+
+
+
+#in case permission denied
+https://forums.docker.com/t/can-not-stop-docker-container-permission-denied-error/41142/5

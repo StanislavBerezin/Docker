@@ -1,0 +1,19 @@
+version: '3'
+
+
+#by making in this file structure will automatically
+#connect those 2 services on the same network
+services:
+#create redis server
+  redis-server:
+  #use image of redis
+    image: 'redis'
+    
+  node-app:
+    restart: always
+    #use the docker file in the current directory
+    #it does the docker buld and docker run at the same time
+    build: .
+    #get ports in the way like "docker run -p 8080:8080"
+    ports:
+      - "4001:8081"
