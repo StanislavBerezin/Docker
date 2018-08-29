@@ -227,7 +227,130 @@ Restart policies
 
 in docker-compose file, under the container props we just write ```restart: (restart_policy)```
 
+# ---------
+# Production grade flow 
+# ---------
+
+github repo, where the real code lives
+one branch for code changes, and master is the finalised version. => Travis CI (testing) => then pushed to AWS hosting
+
+# Start
+
+Need to have 2 containers, 1 for development, and another for production
+
+1)Dockerfile.dev
+2)Dockerfile (for production)
+
+1)Then to build the container for dev we code ```docker build -f Dockerfile.dev . ``` by default it will copy the node_modules folder, just need to remove it and run the command again, that should make it much faster.
+
+# Hot reloading (manual)
+
+ Upon completion your a given an ID, so ```docker run -p 3000:3000 -v /app/node_modules -v $(pwd):/app (ID) ```
+
+In this command we code ```-v /app/node_modules``` so that it doesnt have to search for references of that instance, because we removed it from our local machine. The second ```-v $(pwd):/app``` checks all of the files in our directory. The reason its 'app' its because we defined it in Dockerfile WORKDIR.
+
+# Hot reloading (compose)
+
+Go to https://github.com/StanislavBerezin/Docker-deploy
+
+There is a docker compose
+```
+version: '3'
+services:
+  web:
+    build: 
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    volumes:
+      #dont check references for node_modules
+      - /app/node_modules
+      # from the current (local directory) to /app inside of container
+    
+      - .:/app
+
+```
+# To run tests (manual)
+1)```docker build -f Dockerfile.dev .``` get ID
+2)```docker run -it (id) npm run test``` will does the test after
+
+Another way would be to get inside of the container and and run test there
+1)to get inside of the container through ```docker exec -it (id) sh``` and then in terminal write npm run test
+or
+2)```docker exec -it (id) npm run test```
+
+#To run tests (compose)
+
+the docker file would look like this
+
+```
+version: '3'
+services:
+  web:
+    build: 
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+    volumes:
+      #dont check references for node_modules
+      - /app/node_modules
+      # from the current (local directory) to /app inside of container
+      - .:/app
+  tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    volumes:
+      - /app/node_modules
+      - .:/app
+    command: ["npm", "run", "test"]
+
+```
+to get inside of the container through ```docker exec -it (id) sh``` and then in terminal write npm run test
+
+# Nginux
+
+Production server that will be responsible for receiving requests.
+Can be broken down to 2 different phases, build phase and run phase with nginux. Basically making an image by using node:alpine etc, and then taking the files we require from that build to another image which used to run the production server.
+
+```
+#everythng from here will belong to builder phase
+FROM node:alpine as builder
+
+WORKDIR './app'
+
+COPY package.json .
+
+RUN npm install
+
+COPY . .
+
+RUN npm run build
+
+# based on this we will be given 
+# /app/build <--- thats where all of the important files are
+
+# Another phase
+FROM nginx
+# copy something from builder phase assigned above
+COPY --from=builder /app/build /usr/share/nginx/html
+
+# it starts by itself
+```
+Upon completion u will get an ID, then ```docker run -p 8080:80 (ID)``` and it will run the container
 
 
 # in case permission denied
 https://forums.docker.com/t/can-not-stop-docker-container-permission-denied-error/41142/5
+
+For anyone that does not wish to completely purge AppArmor.
+
+Check status: sudo aa-status
+
+Shutdown and prevent it from restarting: sudo systemctl disable apparmor.service --now
+Unload AppArmor profiles: sudo service apparmor teardown
+Check status: sudo aa-status
+
+You should now be able to stop/kill containers.
