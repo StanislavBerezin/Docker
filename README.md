@@ -342,6 +342,69 @@ COPY --from=builder /app/build /usr/share/nginx/html
 Upon completion u will get an ID, then ```docker run -p 8080:80 (ID)``` and it will run the container
 
 
+#Travis
+
+Get to the website, sign in through git, select a project.
+
+In root directoy of your project create .travis.yml would look like this.
+
+```
+sudo: required
+
+# it tells travis that we need a docker container running
+services:
+  - docker:
+
+# to do something before
+# we need to build the docker image before we run tests
+before_install: 
+# same as the comand in terminal
+# with this tag
+  - docker build -t stasberezin/docker-react -f Dockerfile.dev .
+
+# scripts to run
+script: 
+# it will run the tests in our container. -- --coverage is used to show
+# the coverage and exit the tests right after the boot.
+  - docker run stasberezin/docker-react npm run test -- --coverage
+
+<!-- additional could be like -->
+deploy:
+  provide: ec2
+  region: "us-west-2"
+  app:docker
+  env: "Docker-env"
+  bucket_name: instance name like us-west-2-19292994993
+  bucket_path: docker
+  <!-- get code only from master -->
+  on:
+    branch:master
+    <!-- variables that are declared in travis interface -->
+  access_key_id: $AWS_ACCESS_KEY
+  secret_acess_key:
+    secure: "$AWS_SECRET_KEY
+
+might need to add quotes around everything
+```
+
+then push it to github, and on travis website you will be able to see whats happening
+
+Can store variables like API key throuth travis directly without exposing it in repo. Display value off can be accessed 
+```
+  access_key_id: $AWS_ACCESS_KEY
+  secret_acess_key:
+    secure: "$AWS_SECRET_KEY
+```
+
+
+#Multi container application
+
+Build a dev workflow dockerfile first, so that we can change any lines of code without rebuilding everything from scratch.
+In each folder client, server, worker need to make a Dockerfile.dev similar to the ones we have above.
+Then in a root directory, (out of all three), make a docker-compose file
+
+
+
 # in case permission denied
 https://forums.docker.com/t/can-not-stop-docker-container-permission-denied-error/41142/5
 
