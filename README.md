@@ -4,7 +4,7 @@
 # Quick setup to start working on your project with docker
 1) Start working on your project, and make folders for server, client, and any other ones you need
 
-2) Create a docker file, in each folder. For production use name ```Dockerfile.dev``` for production ```Dockerfile```, and insert your configuration. Appendix 001 (ctrl+f, inser 001)
+2) Create a docker file, in each folder. For development use ```Dockerfile.dev``` and for production ```Dockerfile```, and insert your configuration. Appendix 001 (ctrl+f, inser 001)
 
 3) Once completed Dockerfile creation in all folders, its time to make a ```docker-compose.yml``` file, which will integrate all of created Dockerfiles and will allow you to run ```docker-compose up --build``` to start working on your project. Appendix 001 (ctrl+f, insert 001). There is also ```docker-compose down``` which will stop everything and ```docker-compose ps``` which will list everything you have at the moment.
 
