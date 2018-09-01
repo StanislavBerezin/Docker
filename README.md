@@ -1,13 +1,39 @@
 # ----------------
-# SUMMARY
+# SHORT SUMMRY OF HOW TO WORK WITH DOCKER
 # --------------
-1) Start working on your project
-2) Create a docker file (paragraph 007) hint(ctrl+f, insert 007)
-3) To build the image ```docker build -t stasberezin/(appName) . ``` 
-4) Enter the file system add ```sh``` at the of step 3 or if its already running ```docker exec -it (container_ID) sh``` 
-5) Better way to use (paragraph 008)
+# Quick setup to start working on your project with docker
+1) Start working on your project, and make folders for server, client, and any other ones you need
+
+2) Create a docker file, in each folder. For production use name ```Dockerfile.dev``` for production ```Dockerfile```, and insert your configuration. Appendix 001 (ctrl+f, inser 001)
+
+3) Once completed Dockerfile creation in all folders, its time to make a ```docker-compose.yml``` file, which will integrate all of created Dockerfiles and will allow you to run ```docker-compose up --build``` to start working on your project. Appendix 001 (ctrl+f, insert 001). There is also ```docker-compose down``` which will stop everything and ```docker-compose ps``` which will list everything you have at the moment.
+
+3) Ngix, continuation of step 3. Need to make nginx folder, with files "default.conf", "Dockerfile" and "Dockerfile.dev". The default.conf file can look like Appendix 003
+
+# Shortcuts
+From start to finish
+
+1) BUILD THE IMAGE. Once placed a docker file inside of a specific directory you can run ``` docker build -t (your_hubName)/(project_Name).``` That will make the image which can be later on accessed through the (project_Name) you assigned to it.
+
+2) RUN THE CONTAINER. Upon completion of step 1, you would be able to ```docker run (your_hubName)/(project_Name)```, which will create and start the container. Might need to assign ports ```docker run -p 8080:1000 (ourDockerName)/(projectName)```, 8080 is the request from our browser, and 1000 is the host address we defined in our app (USE CASES: NodeJs app, React, Vue, Angular, all of which have some port during development)
+
+3) START STOPPED CONTAINER. If you have a stopped container and you wish to start it again them ```docker start -a (container_Id)"```
+
+4) ENTER SHELL. If you have a running container and wish to enter its directory then you should ```docker exec -it (container_ID) sh```. If you wish to enter the terminal right at the start then ```docker run -it (app-name) sh```. Additionally instead of ```sh``` at the end, you can write any other command (for example ```docker run -it (app-name) echo HELLO```) and that will get executed.
+
+5) CREATING IMAGE FROM RUNNING CONTAINER. If you have a running container and installed packages and worked there for a substantial period of time and do not wish to lose it, then you can ```docker commit -c 'CMD ["anycommands"]' (id_of_current_container)``` Upon completion will give you an ID of the new container. You can then run it like in step 2 but replace ```(your_hubName)/(project_Name)``` with recieved ID.
 
 
+
+
+
+
+
+
+
+
+# ---------------
+# EXTENSIVE Explanation of docker
 # ----------------------
 # BASICS of Docker
 # --------------------
@@ -16,36 +42,36 @@
 # What docker is and Why
 
 What
-Containers are the instances of a certain programms, so essentually Docker is a platofrm which allows you to run containers based on images. Image is the entity with all depenendancies and  configuarations that are required to run a programm.
+For example, lets say you've built a website with lots of packages, nodejs support and now looking to deploy it. To do so, you will need a virtual machine from AWS or any other server provider, that virtual machine will require basic installations of nodejs and other dependencies associated with it. The process of installing dependencies can get quite tedious and exhasting if you have to do it everytime manually. Docker allows you to create images with pre-set configurations and all required installations which then can be easily deployed without doing anything manually.
 
 Why
-Because it makes it easier to run any software on your machine
-without worrying about setup and dependencies associated with your chosen software
+Because it makes it highly efficient to run a software on any machine without worrying about setup and dependencies associated with it.
 
 
-# How it works when using RUN cmd
-
-When running ```docker run app-name``` it starts the Docker client and then it communicates with Docker server. Eventually the Docker server see that we tried to run ```app-name``` so it starts the search for it, if unable to find (image cache) it loads it (Docker hub) and runs, then it stores image of ```app-name``` in your image cache.
-
-# What is a container (more detailed)
+# What is a container (more technical)
 
 On all computers we have an app processing layer, where we can have our browsers, apps, etc. Those apps make system calls to kernel and kernel communicates directly with CPU, Memory, and Hard Disk. To understand the container lets imagine a scenario: You have a need to run 2 programms at the same time both of which require different versions of NodeJs. However on your machine you have only 1 installed and you cannot run 2 of them at the same time. To solve this problem we have a CONTAINER, essentially a programm makes a system call to kernel which causes it to assign a portion of resources and run apps concurrently. 
 
     The technique for allocating resources is called "nameSpacing" -> (isolating resources per process or group of processes), governed by "Control Groups" -> (limits amount of resources per process). All of those belong to linux OS, so when you install docker you automatically installed linux VM. Inside of it this machine we have all containers and linux kernel to do the job
 
 # What is image
+
 A snapshot of files and directories required to run a specific software.
 
 
 
 
 # ----------------------
-# Docker in more details
+# Docker basic command
 # --------------------
+
+# How it works when using RUN cmd
+
+When running ```docker run app-name``` it starts the Docker client and then it communicates with Docker server. Eventually the Docker server see that we tried to run ```app-name``` so it starts the search for it, if unable to find (image cache) it loads it (Docker hub) and runs, then it stores image of ```app-name``` in your image cache.
 
 # Overriding default commands
 
-In the example of ```docker run app-name``` we can add last arguments like ```echo im overrider``` that will display text after the container is up and running. Can be any commands like ```ls, cd ..``` or run scripts you need. But need to have the entire ubuntu in your image.
+In the example of ```docker run app-name``` we can add arguments to the end like ```echo im overrider``` that will display text after the container is up and running. Can be any commands like ```ls, cd ..``` or run scripts you need. However image should know those basic commands.
 
 # Check running containers
 1)```docker ps``` shows you all running containers
@@ -59,14 +85,14 @@ docker run = docker create + docker start. By running a command ```docker create
 If container stopped we can restart it by getting the id of a stopped process by ```docker ps --all", copy your desired process and then run ```docker start -a "Id of that process"```.
 
 # Removing stopped containers and images and how to stop containers
-1) ```docker system prune``` will delete everything, a prompt will show what exactly.
+1) ```docker system prune``` will delete everything, a prompt will show what exactly can add ```--all``` to the end.
 2) ```docker rm "container name"``` will remove the container
 3) ```docker rmi "image name"``` will remove the image
 4)```docker stop "container"``` will give it time to neatly shut down, if not stopped in 10secs, kill will be executed automatically
 5) ```docker kill "container"``` will destroy the container
 
 # Retrieve log output
-In case you use ```docker create and docker start``` without the -a tag, you know that you won't see any output, to retrieve that data simply write ```docker logs "id"``` and that will show you what was the output in that container.
+In case you use ```docker create and docker start``` without the -a tag, you know that you won't see any output, to retrieve that data simply write ```docker logs (id)``` and that will show you what was the output in that container.
 
 # Multi command containers
 Lets say you run a programm with docker and then you need to execute additional programms in the same instance (container). The solution is ```docker exec -it (container_ID) (Command u need)```. For example ```docker run redis```, then ```docker exec -it (container_ID) redis-cli```. If remove ```-it``` tag, it will start the cli but you will not be given a chance to work in terminal. ```-it``` tag is the same as 
@@ -171,7 +197,10 @@ CMD ["npm", "start"]
 Then after we can do ```docker build -t (ourDockerName)/(projectName) .``` which taggs our newly created image
 
 The image will be running, but we cant access it the app itself, because of the absence of port redirection between our machine and container. The solution would require to redirect users to container if a request was made to that specific url.
+
+
 # To make the server run
+
 Solution ```docker run -p 8080:8080 (ourDockerName)/(projectName)```
 
 first 8080 is the request you make from your machine, and second 8080 is the port that is in the docker container.
@@ -186,7 +215,9 @@ The idea is to create an app which will count visits to the website. It will be 
 docker compose is used to start multiple containers at the same time.(it can help save time instead of writing all commands everytime) 
 
 008
+
 # Docker compose run 
+
 docker.compose.yml -> you can basically say to go and make 2 different containers and all instructions associated with them
 
 ```
@@ -480,6 +511,8 @@ and in docker-compose add
 
 With this approach we are not limited to one AWS service building images, rather travis would be able to do this job and then we can deploy it literally on any service.
 
+Need to make Dockerfiles in each folder for the production
+
 
 
 # in case permission denied
@@ -514,3 +547,132 @@ You should now be able to stop/kill containers.
 
 ```
 Thats the way docker compose should look like
+
+# Appendix 001
+
+```
+version: '3'
+services: 
+  # what images do we need while working on this?
+  # or what dependencies are we using?
+  # postgress
+  postgres:
+    # and use that image
+    image: 'postgres:latest'
+  nginx:
+    restart: always
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./nginx
+    ports:
+      # nginux on 80, but map it to 3050
+      - "3050:80"
+  redis:
+    # then we need redis to use this image
+    image: 'redis:latest'
+    # then we need a server itself the code we've made
+  api:
+    # so need to build that container
+    build:
+      # use the dockerfile with our info there
+      dockerfile: Dockerfile.dev
+      # indiciate the locations, considering compose file is in root
+      # then needs to go to server folder to find dockerfile there
+      context: ./server
+
+    # to allow constant updates
+    volumes:
+      # but dont look for changes in that folder
+      # p.s "/app" is from WORKDIR dockerfile
+      - /app/node_modules
+      # check the server folder and send everything to :app
+      - ./server:/app
+# environmental variables can be declared here
+# process.env.VARIABLE
+    environment:
+    # redis is reffering to the one above
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - PGUSER=postgres
+      - PGHOST=postgres
+      - PGDATABASE=postgres
+      - PGPASSWORD=postgres_password
+      - PGPORT=5432
+
+  client:
+    build: 
+      dockerfile: Dockerfile.dev
+      context: ./client
+    volumes:
+      - /app/node_modules
+      # everything from client should be applied in app folder
+      - ./client:/app
+      
+  worker:
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./worker
+    volumes:
+      - /app/node_modules
+      - ./worker:/app
+    environment:
+    # redis is reffering to the one above
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+
+```
+
+# Appendix 002
+```
+#what is used as OS, in this case node
+FROM node:alpine
+
+#if doesnt exist create this directory and put execute the rest of the commands in there
+WORKDIR /usr/app
+
+#what exactly to copy, by 1st "./" we are saying to copy everything. If need can specify explicitly what to copy like "./package.json", so only that will be copied and the rest of commands will be executed
+COPY ./package.json ./
+
+#this will be executed only if changes were made in json file
+RUN npm install
+
+#then copy the rest of the files.
+COPY ./ ./
+
+#commands to run upon completion of above steps
+CMD ["npm", "start"]
+```
+
+#Appendix 003
+```
+# because we called client, client in docker, so we say
+# upstream client
+upstream client {
+    # then we speciy for nginux server to listen for client
+    # on port 3000
+    server client: 3000;
+}
+
+# the same like above to express api
+upstream api {
+    server api: 5000;
+}
+
+# this the nginx configuration
+server{
+    # nginx work on port 80
+    listen 80;
+
+# everytime when somebody goes to "/" that is a client, defined
+# in upstream above
+    location / {
+        proxy_pass http://client;
+    }
+# the same here with with a bit of regex to cut off "/api"
+# before sending it.
+    location /api{
+        rewrite /api(.*) /$1 break;
+        proxy_pass http://api
+    }
+}
+```
