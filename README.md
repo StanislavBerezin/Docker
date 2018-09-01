@@ -403,6 +403,83 @@ Build a dev workflow dockerfile first, so that we can change any lines of code w
 In each folder client, server, worker need to make a Dockerfile.dev similar to the ones we have above.
 Then in a root directory, (out of all three), make a docker-compose file
 
+# Variables
+
+If you want variable for server then under server in docker-compose need to write
+```
+    environment:
+    # redis is reffering to the one above
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - PGUSER=postgres
+      - PGHOST=postgres
+      - PGDATABASE=postgres
+      - PGPASSWORD=postgres_password
+      - PGPORT=5432
+      
+```
+If for client, then the same for client.
+
+# nginx
+
+On the client side, the requests are made like "/api/services", however our routes are made like "/services", so the solution is to add an nginux services in between of server, and client, which will be redirecting the calls. Better not to specify any ports but rather let nginux to direct everything.
+Need configuration filed for nginux. For example server listens on port 4000 and client on 5000, in config file we would be able to define those ones. The config file can look like this
+```
+# because we called client, client in docker, so we say
+# upstream client
+upstream client {
+    # then we speciy for nginux server to listen for client
+    # on port 3000
+    server client: 3000;
+}
+
+# the same like above to express api
+upstream api {
+    server api: 5000;
+}
+
+# this the nginx configuration
+server{
+    # nginx work on port 80
+    listen 80;
+
+# everytime when somebody goes to "/" that is a client, defined
+# in upstream above
+    location / {
+        proxy_pass http://client;
+    }
+# the same here with with a bit of regex to cut off "/api"
+# before sending it.
+    location /api{
+        rewrite /api(.*) /$1 break;
+        proxy_pass http://api
+    }
+}
+```
+Then we need a dockerfile for nginux
+
+and in docker-compose add 
+```
+  nginx:
+    restart: always
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./nginx
+    ports:
+      # nginux on 80, but map it to 3050
+      - '3050: 80'
+```
+# Travis testing again and Multi container setup
+1)pushing code to github
+2) Travis pull repo
+3) Travis build a test image and tests the code
+4) Travis buils prod images
+5) Travis pushes build prod images to docker hub
+6) Travis lets AWS service know that the tests passed nicely
+7) AWS services pulls images from docker hub and deploys
+
+With this approach we are not limited to one AWS service building images, rather travis would be able to do this job and then we can deploy it literally on any service.
+
 
 
 # in case permission denied
@@ -417,3 +494,23 @@ Unload AppArmor profiles: sudo service apparmor teardown
 Check status: sudo aa-status
 
 You should now be able to stop/kill containers.
+
+# Notes
+```  client:
+    build: 
+      dockerfile: Dockerfile.dev
+      context: ./client
+    volumes:
+      - /app/node_modules
+      # everything from client should be applied in app folder
+      - ./client:/app
+  worker:
+    build:
+      dockerfile: Dockerfile.dev
+      context: ./worker
+    volumes:
+      - /app/node_modules
+      - ./worker:/app
+
+```
+Thats the way docker compose should look like
