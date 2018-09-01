@@ -391,7 +391,7 @@ then push it to github, and on travis website you will be able to see whats happ
 
 Can store variables like API key throuth travis directly without exposing it in repo. Display value off can be accessed 
 ```
-  access_key_id: $AWS_ACCESS_KEY
+  access_key_id: $AWS_AACCESS_KEY
   secret_acess_key:
     secure: "$AWS_SECRET_KEY
 ```
