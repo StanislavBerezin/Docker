@@ -6,9 +6,9 @@
 
 2) Create a docker file, in each folder. For development use ```Dockerfile.dev``` and for production ```Dockerfile```, and insert your configuration. Appendix 001 (ctrl+f, inser 001)
 
-3) Once completed Dockerfile creation in all folders, its time to make a ```docker-compose.yml``` file, which will integrate all of created Dockerfiles and will allow you to run ```docker-compose up --build``` to start working on your project. Appendix 001 (ctrl+f, insert 001). There is also ```docker-compose down``` which will stop everything and ```docker-compose ps``` which will list everything you have at the moment.
+3) Once completed Dockerfile creation in all folders, its time to make a ```docker-compose.yml``` file, which integrates all of created Dockerfiles and allows you to run ```docker-compose up --build``` to start working on your project. Appendix 001 (ctrl+f, insert 001). There is also ```docker-compose down``` which will stop everything and ```docker-compose ps``` which will list everything you have at the moment.
 
-3) Ngix, continuation of step 3. Need to make nginx folder, with files "default.conf", "Dockerfile" and "Dockerfile.dev". The default.conf file can look like Appendix 003
+3) Ngix, continuation of step 3, should be done at the same time. Need to make nginx folder, with files "default.conf", "Dockerfile" and "Dockerfile.dev". The default.conf file can look like Appendix 003
 
 # Shortcuts
 From start to finish
