@@ -1,7 +1,7 @@
 # ----------------
 # SHORT SUMMRY OF HOW TO WORK WITH DOCKER
 # --------------
-# Quick setup to start working on your project with docker
+# Quick setup to start working on your project with docker (DEV)
 1) Start working on your project, and make folders for server, client, and any other ones you need
 
 2) Create a docker file, in each folder. For development use ```Dockerfile.dev``` and for production ```Dockerfile```, and insert your configuration. Appendix 002 (ctrl+f, inser 002)
@@ -9,6 +9,18 @@
 3) Once completed Dockerfile creation in all folders, its time to make a ```docker-compose.yml``` file, which integrates all of created Dockerfiles and allows you to run ```docker-compose up --build``` to start working on your project. Appendix 001 (ctrl+f, insert 001). There is also ```docker-compose down``` which will stop everything and ```docker-compose ps``` which will list everything you have at the moment.
 
 3) Ngix, continuation of step 3, should be done at the same time. Need to make nginx folder, with files "default.conf", "Dockerfile" and "Dockerfile.dev". The default.conf file can look like Appendix 003
+
+# HOW TO START PRODUCTION 
+In react the docker file should look like this 004, in all other ones like 005. In a client folder we add nginx folder and put 006 inside.
+The flow in a proper app should be
+1) Code on github
+2)Travis pulls repo
+3) Travis builds a test image and performs tests
+4) If succesful, travis build production images
+5) Travis pushes build img to docker hub
+6) Travis lets AWS know that is all ready
+7) AWS pulls images from docker hub and deploys.
+
 
 # Shortcuts
 From start to finish
@@ -673,6 +685,52 @@ server{
     location /api{
         rewrite /api(.*) /$1 break;
         proxy_pass http://api
+    }
+}
+```
+# Appendix 004
+
+```
+FROM node:alpine as builder
+WORKDIR '/app'
+COPY ./package.json ./
+RUN npm install
+COPY ./ ./
+RUN npm run build
+
+FROM nginx
+EXPOSE 3000
+# we are copying the file from nginx which is responsible for ports
+# root and serving html
+COPY ./nginx/default.conf /etc/nginx/conf.d/default.conf
+
+# this is where we get the build file and designated location
+COPY --from=builder /app/build /usr/share/nginx/html
+```
+
+# Appendix 005
+```
+FROM node:alpine
+WORKDIR '/app'
+COPY ./package.json ./
+RUN npm install
+COPY ./ ./
+CMD ["npm", "run", "start"]
+``` 
+make sure that start is set to ```node index.js``` in package.json
+
+# Appendix 006
+```
+server{
+    listen 3000;
+
+    location / {
+        # thats where production assets will sit
+        root /usr/share/nginx/html;
+        # the file itself
+        index index.html index.htm;
+        # to make react routing work
+        try_files $uri $uri/ /index.html;
     }
 }
 ```
