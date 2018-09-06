@@ -21,6 +21,8 @@ The flow in a proper app should be
 6) Travis lets AWS know that is all ready
 7) AWS pulls images from docker hub and deploys.
 
+Need to push images to docker hub, so at first need to build them ```docker build -t (userName)/(serviceName) .(/location) or just .```. Then to push images to docker hub ```docker push (userName)/(serviceName)```, that will do the job. Next step is get those images to AWS. Dockerrun.aws.json - is the file that can tell AWS where to get images and how to deploy them, similar to docker-compose.
+
 
 # Shortcuts
 From start to finish
