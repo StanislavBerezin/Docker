@@ -527,7 +527,103 @@ With this approach we are not limited to one AWS service building images, rather
 
 Need to make Dockerfiles in each folder for the production
 
+# Kubernettes
 
+When an app is deployed on AWS machine, kuber makes a cluster of different nodes (machines) that run our application. Master is the component that controlls what each node(machine) should do and what images to create. Minicube is used in dev mode, or in production EKS, GKE or yourself. 
+
+Hiearchy:
+1) Node(machine)
+inside
+2)Pod (runns images)
+inside
+3) Container (image itself)
+The image you wish to recreate better be on docker hub (for example "worker", "client" etc). ALthough Kuber prefers the name of not images but rather Objects to create.
+
+kubectl - managing containers in the node
+minikube - managin node itself (dev only)
+
+`(minikube start)`
+
+1)client-pod.yaml
+
+apiVersion limits what kinds we can use.
+
+```
+apiVersion: v1
+
+// Pod is used to run a containers
+
+kind: Pod
+metadata:
+    name: client-pod
+    labels:
+        component: web
+spec:
+    containers:
+        - name: client
+          image: dockerhubName/itemToCreate
+          ports:
+          
+          //this port refers to the port we exposed in main nginx file
+          
+            - containerPort: 3000
+  
+
+```
+
+so when we this file, it will create a VM, with POD named client-pod and inside will have an image specified in container. Pod can contain multple containers (losley coupled)
+
+1)client-node.yaml
+```
+apiVersion: v1
+
+// Service is responsible for networking
+
+kind: Service
+metadata:
+    name: client-node-port
+spec:
+    type: NodePort
+    ports:
+   
+    
+        - port: 3050
+        //identical to port in previous file
+          targetPort: 3000
+          //when you'd like to access it from browser
+          nodePort 31515
+          
+          // as we defined label in previous file, now we can refer to that
+          
+    selector:
+        component: web
+
+
+```
+
+Service pod is a frame before sending requests to PODS, it uses selector to know where to redirect, it will search for all labels its assigned to and expose it to the outside worl in port 3000.
+
+Service consists of
+1) ClusterIP
+2) NodePort (exposes to outside worl (dev)
+3) LoadBalancer
+4) Ingress
+
+ _____
+ TO ACESS your dev deployed project `minikube ip` will give you an IP of VM machine that is running for browser surfing.
+ 
+ 1) to run the files `kubectl apply -f client-pod.yaml` and another one in the same way.
+ 2) to check pods `kubectl get pods` tells you (1/1) one of its running, the second is the number of pods u want to have
+ 3) to check services `kubectl get services`
+
+
+if one of the docker images like client is killed, kubernettes will restart it automatically and `kubectl get pods` will be updatd and show you "RESTARTS: 1"
+
+Summary:
+Deployment file (2 we have defined) might say it needs 4 images (objects) of certain services, then its passed to kube-apiserver (Master) who is managing the nodes. It sees, needs this.nameContainer, this.numberOfThem, and this.currentlyRunning. If its not enough then it reaches to nodes(machines) and executes and creates those images (objects)
+Kubernetes gets images from docker hub, if there are not enough images running then it recreates them for you.
+Imperative - do exactly as outlined (for example if u want to update 10 containers, u have to explicitly define it)
+Declarative - our setup should look like this, make it happen. (just need to say all updated containers should look like this)
 
 # in case permission denied
 https://forums.docker.com/t/can-not-stop-docker-container-permission-denied-error/41142/5
