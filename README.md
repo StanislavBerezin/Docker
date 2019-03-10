@@ -610,20 +610,221 @@ Service consists of
 4) Ingress
 
  _____
+ COMMANDS
+ 
  TO ACESS your dev deployed project `minikube ip` will give you an IP of VM machine that is running for browser surfing.
  
- 1) to run the files `kubectl apply -f client-pod.yaml` and another one in the same way.
- 2) to check pods `kubectl get pods` tells you (1/1) one of its running, the second is the number of pods u want to have
+ 1) to run the files `kubectl apply -f client-pod.yaml` and another one in the same way. or just point to folder and it will execute all
+ 2) to check pods `kubectl get pods` or `deployments`  tells you (1/1) one of its running, the second is the number of pods u want to have
  3) to check services `kubectl get services`
-
+ 4) to delete `kubectl delete -f client-pod.yaml`
+ 5) to update if image itself was updated  `kubectl set image deployment/client-deployment client=dockerHubName/image:v1`
+ 6) to get persistence `kubectl get pv` or `pvc`
 
 if one of the docker images like client is killed, kubernettes will restart it automatically and `kubectl get pods` will be updatd and show you "RESTARTS: 1"
 
 Summary:
 Deployment file (2 we have defined) might say it needs 4 images (objects) of certain services, then its passed to kube-apiserver (Master) who is managing the nodes. It sees, needs this.nameContainer, this.numberOfThem, and this.currentlyRunning. If its not enough then it reaches to nodes(machines) and executes and creates those images (objects)
 Kubernetes gets images from docker hub, if there are not enough images running then it recreates them for you.
+
 Imperative - do exactly as outlined (for example if u want to update 10 containers, u have to explicitly define it)
 Declarative - our setup should look like this, make it happen. (just need to say all updated containers should look like this)
+
+# More on Kube
+- Inside of pod If we updated the conf file we do apply command `kubectl apply -f client-pod.yaml` to get inside of the pod and see what is running inside `kubectl describe pod client-pod`
+Althoug in POD you are not allowed to change ports, name, containers except image. FOr that purpose you use Kind: Deployment. Deployment has a pod Template which essentialy the same in configs.
+
+Depl file client-deployment.yaml
+
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: client-deployment
+spec:
+//the number of pods to make
+    replicas: 1
+//to get references
+    selector:
+        matchLabels:
+        //for server can be server, for front-end front end etc.
+            component: web
+// configuration for each pod
+    template:
+        metadata:
+            labels:
+                component: web
+        spec:
+            containers:
+                - name: client
+                  image: dockerHubAccount/imageToUpload
+                  ports:
+                    - containerPort: 3000
+
+```
+
+To update pod if image changed, to new images pushed to docker hub need to add version like :v1. 
+Then in kubernetes `kubectl set image deployment/client-deployment client=dockerHubName/image:v1`
+
+# Real Kube
+Cluster IP is used to expose pods to other objects in the cluster (Each Deployment) has a clusterIP service.
+
+The same file should be repeated for client, server, workers etc. Ports would have to be changed accordingly
+
+clinet-cluster-ip-service.yaml
+
+```
+apiVersion: v1
+kind: Service
+metadata:
+    name: client-cluster-ip-service
+spec:
+    type:ClusterIP
+    selector:
+        component: web
+    ports:
+    //where to expose it to outside
+        - port:3000
+          targetPort: 3000
+     
+```
+other images for server, client, workers etc, would be similar to the one in "More Kube" section.
+
+Alternative to having seperate `client-deployment.yaml` and `clinet-cluster-ip-service.yaml` we can merge them into 1 file
+client.config.yaml
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: client-deployment
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            component: web
+    template:
+        metadata:
+            labels:
+                component: web
+        spec:
+            containers:
+                - name: client
+                  image: dockerHubAccount/imageToUpload
+                  ports:
+                    - containerPort: 3000
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: client-cluster-ip-service
+spec:
+    type:ClusterIP
+    selector:
+        component: web
+    ports:
+    //where to expose it to outside
+        - port:3000
+          targetPort: 3000
+
+
+```
+
+# Databases with Kube
+General volume - exists in pod layer. upon destruction of pod, data is gone.
+Persistent volume claim - possible storage option. It sees your request and tries to find something to accomodate your needs. Slices your harddrive (or cloud provider)
+Need to use Persistent Volumes so data is not destroyed upon killing a pod. TO visiualise its like cloud DB, exists beyond pod layer.
+
+database-persistent-volume-clain.yaml
+basically it tells we need to find DB with this requirements
+```
+apiVersion: v1
+kind: Service
+metadata:
+    name: database-persistent-volume-claim
+specs:
+//there are more access modes
+    accessModes:
+        - ReadWriteOnce
+    resources:
+        request:
+        //at least 2 gigs of space
+            storage: 2Gi
+```
+
+in db container .yaml
+here we set up a volume that matches those requirements.
+```
+spec:
+    volumes:
+        - name: postgres-storage
+          persistanceVolumeClaim:
+          // the one defined above
+            claimName: database-persistent-volume-claim
+    containers:
+        ...
+        ...
+        volumeMounts:
+        //same as in spec volumes
+            - name: postres-storage
+            //postgress specific
+              mountPath: /var/lib/posstgressql/data
+              subPath: postgres
+```
+
+ENV variables
+inside template -> spec-> containers->
+```
+env:
+  - name: REDIS_HOST
+    value: redis-cluster-ip-service
+  - name: RESIT_PORT
+    value: '6379'
+```
+for secret ones, you need to run a cmd line `kubectl create secret generic pgpassword --from-literal PGPASSWORD=1234abcd`
+now it stores the secret in our machine
+```
+ - name: PGPASSWORD
+   valueFrom:
+     secretKeyRef:
+        name: pgpassword
+        key: PGPASSWORD
+```
+
+# Ingress services / Traffic
+
+Ingress routing rules to get traffic to our services -> create a controller for ingress.
+
+INGRESS CONFIG (roung rules) has the configuration for INGRESS CONTROLLER (Deployment nginx) which watches and handles TRAFFIC 
+
+inside Services (LoadBalancer) getting amount of traffic to your cluster
+
+ingress.service.yaml
+similar to nginx config
+```
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+    name: ingress-service
+    annotations:
+        kubrnetes.io/ingress.class:nginx
+        //to remove '/api'
+        nginx.ingress.kubernetes.io/rewrite-target: /
+    spec:
+        rules:
+            -http:
+                paths:
+                    -path: /
+                     backend:
+                        serviceName: client-cluster-ip-service
+                        servicePort:3000
+                    -path: /api/
+                     backend:
+                        serviceName: server-cluster-ip-service
+                        servicePort:5000
+                        
+                    
+
+```
 
 # in case permission denied
 https://forums.docker.com/t/can-not-stop-docker-container-permission-denied-error/41142/5
